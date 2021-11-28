@@ -59,9 +59,7 @@ public class ClientMain {
         // Gathering clear-text files
         String folderPath = userInput.get(CLIArgument.DIR);
         File targetFolder = new File(folderPath);
-        File[] clearFiles = (File []) Arrays.stream(targetFolder.listFiles())
-                                        .filter( f -> f.getName().endsWith(".pdf"))
-                                        .toArray(File[]::new);
+        File[] clearFiles = targetFolder.listFiles();
         // Parsing available passwords
         String passwordFilepath = userInput.get(CLIArgument.PWD);
         DrawList<String> passwordPool = new DrawList<>();
