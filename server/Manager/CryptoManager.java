@@ -5,6 +5,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.InvalidKeyException;
+import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
@@ -29,6 +30,16 @@ public class CryptoManager {
         return new SecretKeySpec(factory.generateSecret(spec).getEncoded(),"AES");
     }
 
+    /**
+     * Hashes a string with the SHA-1 algorithm
+     * @param data the string to hash
+     * @return A 20 bytes array representing the hash of the string
+     */
+    public static byte[] hashSHA1(String data) throws NoSuchAlgorithmException{
+        MessageDigest md = MessageDigest.getInstance("SHA-1");
+        return md.digest(data.getBytes());
+    }
+    
     /**
      * Decryps given file
      * @param key Key to use for the decryption

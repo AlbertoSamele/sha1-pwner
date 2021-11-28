@@ -1,24 +1,17 @@
 package DecryptionService;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.Socket;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 import java.util.UUID;
+import java.util.function.Function;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
-import javax.crypto.NoSuchPaddingException;
-import javax.crypto.SecretKey;
-
-import Manager.FileManager;
-import Manager.CryptoManager;
+import javax.crypto.*;
+import Manager.*;
+import Util.CharsetIterable;
 
 // Handles decryption requests
 public class DecryptionHandler implements Runnable {
@@ -49,7 +42,9 @@ public class DecryptionHandler implements Runnable {
             File requestFile = new File(String.format("encrypted_%s", handlerId.toString()));
             FileManager.readFile(inputStream, new FileOutputStream(requestFile), request.fileLength);
             // Decrypting request data
+            System.out.println("Cracking password");
             String cleartextPassword = decryptPassword(request.hashedPassword, request.passwordLength);
+            System.out.println("Password found: " + cleartextPassword);
             SecretKey decryptionPassword = CryptoManager.getKeyFromPassword(cleartextPassword);
             File responseFile = new File(String.format("decrypted_%s", handlerId.toString()));
             CryptoManager.decryptFile(decryptionPassword, requestFile, responseFile);
@@ -89,8 +84,36 @@ public class DecryptionHandler implements Runnable {
      * @param hashedPassword the password to be decrypted
      * @param passwordLength the clear-text password length
      * @return the clear-text password
+     * @throws NoSuchAlgorithmException when the bruteforce process fails
      */
-    private String decryptPassword(byte[] hashedPassword, int passwordLength) {
-        return "test";
+    private String decryptPassword(byte[] hashedPassword, int passwordLength) throws NoSuchAlgorithmException {
+        // Declaring available password charset
+        CharsetIterable ascii = CharsetIterable.ASCII;
+        char minAsciiValue = ascii.min();
+        char maxAsciiValue = ascii.max();
+        // Defining bruteforce exit condition
+        Function<String, Boolean> passwordFound = (password) -> {
+            try {
+                return Arrays.equals(CryptoManager.hashSHA1(password), hashedPassword);
+            } catch (NoSuchAlgorithmException e) { return false; }
+        };
+        // Initializing password guess with minimum charset value
+        char[] passwordGuess = new char[passwordLength];
+        Arrays.fill(passwordGuess, minAsciiValue);
+        // Testing out every possible password combination
+        while (!passwordFound.apply(String.valueOf(passwordGuess))) {
+            // Incrementing password guess from its very end
+            for (int j = passwordGuess.length - 1; j >= 0; j--) {
+                if (passwordGuess[j] < maxAsciiValue) {
+                    passwordGuess[j]++;
+                    if (j < passwordGuess.length - 1) { passwordGuess[j + 1] = minAsciiValue; }
+                    break;
+                }
+            }
+        }
+        /*if (Arrays.equals(CryptoManager.hashSHA1("test"), hashedPassword)) {
+            System.out.println("OK");
+        } else { System.out.println("KO"); }*/
+        return String.valueOf(passwordGuess);
     }
 }
