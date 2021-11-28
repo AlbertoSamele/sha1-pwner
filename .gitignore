@@ -4,6 +4,10 @@
 # Log file
 *.log
 
+# Output files
+client/Decrypted
+client/Encrypted
+
 # BlueJ files
 *.ctxt
 
