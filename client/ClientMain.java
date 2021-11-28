@@ -74,7 +74,7 @@ public class ClientMain {
         // Processing input
         for (File file : clearFiles) {
             // Generatiing passwords
-            String clearPassword = "test";
+            String clearPassword = passwordPool.draw();
             SecretKey encryptionPassword = CryptoManager.getKeyFromPassword(clearPassword);
             byte[] hashedPassword = CryptoManager.hashSHA1(clearPassword);
             // Encrypting file
