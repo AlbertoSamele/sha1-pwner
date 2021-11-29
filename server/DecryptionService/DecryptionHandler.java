@@ -6,13 +6,15 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.UUID;
 import java.util.function.Function;
 
 import javax.crypto.*;
-import Manager.*;
 import Util.CharsetIterable;
 
+import ServerManager.*;
 // Handles decryption requests
 public class DecryptionHandler implements Runnable {
 
@@ -22,9 +24,9 @@ public class DecryptionHandler implements Runnable {
     private final UUID handlerId;
 
 
-    /** 
+    /**
      * @param socket Socket relative to the running inbound connection
-    */
+     */
     public DecryptionHandler(Socket socket) {
         this.socket = socket;
         handlerId = UUID.randomUUID();
@@ -32,7 +34,7 @@ public class DecryptionHandler implements Runnable {
 
 
     @Override
-    public void run () {
+    public void run() {
         try {
             // IO streams
             DataInputStream inputStream = new DataInputStream(socket.getInputStream());
@@ -43,7 +45,13 @@ public class DecryptionHandler implements Runnable {
             FileManager.readFile(inputStream, new FileOutputStream(requestFile), request.fileLength);
             // Decrypting request data
             System.out.println("Cracking password");
-            String cleartextPassword = decryptPassword(request.hashedPassword, request.passwordLength);
+            //String cleartextPassword = decryptPassword(request.hashedPassword, request.passwordLength);
+            String result = "";
+            for (int i=0; i < (request.hashedPassword).length; i++) {
+                result +=
+                        Integer.toString( ( (request.hashedPassword)[i] & 0xff ) + 0x100, 16).substring( 1 );
+            }
+            String cleartextPassword = decryptPasswordFaster(result, request.passwordLength);
             System.out.println("Password found: " + cleartextPassword);
             SecretKey decryptionPassword = CryptoManager.getKeyFromPassword(cleartextPassword);
             File responseFile = new File(String.format("decrypted_%s", handlerId.toString()));
@@ -56,8 +64,8 @@ public class DecryptionHandler implements Runnable {
             requestFile.delete();
             responseFile.delete();
         } catch (
-            IOException | NoSuchAlgorithmException | InvalidKeySpecException | InvalidKeyException | 
-            NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) { 
+                IOException | NoSuchAlgorithmException | InvalidKeySpecException | InvalidKeyException |
+                        NoSuchPaddingException | IllegalBlockSizeException | BadPaddingException e) {
             e.printStackTrace();
         }
     }
@@ -69,9 +77,11 @@ public class DecryptionHandler implements Runnable {
      * @throws IOException if malformed request
      */
     private DecryptionRequest readRequest(DataInputStream inputStream) throws IOException {
-        byte [] hashedPassword = new byte[20];
-        int count = inputStream.read(hashedPassword,0, 20);
-        if (count < 0){ throw new IOException("Server could not read from the stream"); }
+        byte[] hashedPassword = new byte[20];
+        int count = inputStream.read(hashedPassword, 0, 20);
+        if (count < 0) {
+            throw new IOException("Server could not read from the stream");
+        }
 
         int passwordLength = inputStream.readInt();
         long fileLength = inputStream.readLong();
@@ -81,6 +91,7 @@ public class DecryptionHandler implements Runnable {
 
     /**
      * Decrypts given hashed password into cleartext
+     *
      * @param hashedPassword the password to be decrypted
      * @param passwordLength the clear-text password length
      * @return the clear-text password
@@ -95,7 +106,9 @@ public class DecryptionHandler implements Runnable {
         Function<String, Boolean> passwordFound = (password) -> {
             try {
                 return Arrays.equals(CryptoManager.hashSHA1(password), hashedPassword);
-            } catch (NoSuchAlgorithmException e) { return false; }
+            } catch (NoSuchAlgorithmException e) {
+                return false;
+            }
         };
         // Initializing password guess with minimum charset value
         char[] passwordGuess = new char[passwordLength];
@@ -106,7 +119,9 @@ public class DecryptionHandler implements Runnable {
             for (int j = passwordGuess.length - 1; j >= 0; j--) {
                 if (passwordGuess[j] < maxAsciiValue) {
                     passwordGuess[j]++;
-                    if (j < passwordGuess.length - 1) { passwordGuess[j + 1] = minAsciiValue; }
+                    if (j < passwordGuess.length - 1) {
+                        passwordGuess[j + 1] = minAsciiValue;
+                    }
                     break;
                 }
             }
@@ -115,5 +130,45 @@ public class DecryptionHandler implements Runnable {
             System.out.println("OK");
         } else { System.out.println("KO"); }*/
         return String.valueOf(passwordGuess);
+    }
+
+    private String decryptPasswordFaster(String hashedPassword, int passwordLength) throws NoSuchAlgorithmException {
+        Map<String, String> map = new HashMap<>();
+        try {
+            BufferedReader in = new BufferedReader(new FileReader("tables.txt"));
+
+            String line;
+            while ((line = in.readLine()) != null) {
+                String parts[] = line.split("  ");
+                map.put(parts[1], parts[0]);
+            }
+            in.close();
+        } catch (Exception e) {
+            System.out.println("File tables.txt not found ");
+            System.exit(0);
+        }
+
+        String hash = hashedPassword;
+        String plain = null;
+        while(true) {    // never finds it, indefinite loop
+            if (map.containsKey(hashedPassword)) {
+                return map.get(hash);
+            } else {
+                plain = reduce(hash);
+                hash = CryptoManager.shashSHA1(plain);
+            }
+        }
+    }
+
+    String reduce(String s) {
+        String r = "";
+        int c = 0;
+        for (int i = 0; i < s.length() && c < 4; i++) {
+            if(Character.isDigit(s.charAt(i))) {
+                r = r + s.charAt(i);
+                c = c + 1;
+            }
+        }
+        return r;
     }
 }

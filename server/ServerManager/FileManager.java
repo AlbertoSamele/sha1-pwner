@@ -1,4 +1,4 @@
-package Manager;
+package ServerManager;
 
 import java.io.IOException;
 import java.io.InputStream;

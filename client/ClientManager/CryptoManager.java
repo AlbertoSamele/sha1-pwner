@@ -1,4 +1,4 @@
-package Manager;
+package ClientManager;
 
 import java.io.*;
 import java.security.*;

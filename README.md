@@ -6,10 +6,17 @@ The main scope is not to create a scalable, state-of-the-art server with decrypt
 
 # Architectural choices
 
-Client and server are here meant to be fully independent, code duplication in some Manager classes is therefore on purpose
+Client and server are here meant to be fully independent, code duplication in ServerManager and ClientManager classes is therefore on purpose
 
 # How to run
 
+For the rainbow table:
+```
+cd rainbow
+javac RainbowMain.java
+java RainbowMain
+```
+Then, move the *table.txt* file from the rainbow folder to the server folder
 For the server:
 ```
 cd server

@@ -1,4 +1,4 @@
-package Manager;
+package ServerManager;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -39,7 +39,22 @@ public class CryptoManager {
         MessageDigest md = MessageDigest.getInstance("SHA-1");
         return md.digest(data.getBytes());
     }
-    
+
+    /**
+     * Hashes a string with the SHA-1 algorithm
+     * @param data the string to hash
+     * @return A 20 bytes array representing the hash of the string
+     */
+    public static String shashSHA1(String data) throws NoSuchAlgorithmException{
+        MessageDigest md = MessageDigest.getInstance("SHA-1");
+        byte[] b = md.digest(data.getBytes());
+        String result = "";
+        for (int i=0; i < b.length; i++) {
+            result +=
+                    Integer.toString( ( b[i] & 0xff ) + 0x100, 16).substring( 1 );
+        }
+        return result;
+    }
     /**
      * Decryps given file
      * @param key Key to use for the decryption

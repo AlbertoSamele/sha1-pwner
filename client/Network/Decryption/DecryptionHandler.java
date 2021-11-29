@@ -2,7 +2,7 @@ package Network.Decryption;
 import java.io.*;
 import java.net.Socket;
 
-import Manager.FileManager;
+import ClientManager.FileManager;
 
 public class DecryptionHandler implements Runnable {
     
