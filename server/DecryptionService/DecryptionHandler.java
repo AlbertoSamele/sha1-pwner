@@ -138,29 +138,37 @@ public class DecryptionHandler implements Runnable {
             BufferedReader in = new BufferedReader(new FileReader("tables.txt"));
 
             String line;
+            int l = 0;
             while ((line = in.readLine()) != null) {
                 String parts[] = line.split("  ");
-                map.put(parts[1], parts[0]);
+                map.put(parts[1], parts[0]+l);
+                l++;
             }
             in.close();
         } catch (Exception e) {
             System.out.println("File tables.txt not found ");
             System.exit(0);
         }
-
+        System.out.println(map.size());
         String hash = hashedPassword;
         String plain = null;
-        while(true) {    // never finds it, indefinite loop
-            if (map.containsKey(hashedPassword)) {
-                return map.get(hash);
-            } else {
-                plain = reduce(hash);
+        for(int i = 0; i < 10000; i++) {
+            if (map.containsKey(hash)) {
+                String found = findPlain(map.get(hash), hashedPassword);
+                if(found != null)
+                    return found;
+                plain = reduce(hash,0);
+                hash = CryptoManager.shashSHA1(plain);
+            }
+            else {
+                plain = reduce(hash,0);
                 hash = CryptoManager.shashSHA1(plain);
             }
         }
+        return null;
     }
 
-    String reduce(String s) {
+    String reduce(String s, int j) {
         String r = "";
         int c = 0;
         for (int i = 0; i < s.length() && c < 4; i++) {
@@ -169,6 +177,22 @@ public class DecryptionHandler implements Runnable {
                 c = c + 1;
             }
         }
+        int d = Integer.parseInt(r);
+        d = (d+j)%9999;
+        r = String.valueOf(d);
         return r;
+    }
+
+    String findPlain(String plain, String hash) throws NoSuchAlgorithmException {
+        int j = Integer.parseInt(plain.substring(4));
+        plain = plain.substring(0,4);
+        String hash2 = CryptoManager.shashSHA1(plain);
+        for(int i = 0; i < 10000 ; i++) {
+            if(hash.equals(hash2))
+                return plain;
+            plain = reduce(hash2,j);
+            hash2 = CryptoManager.shashSHA1(plain);
+        }
+        return null;
     }
 }

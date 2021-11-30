@@ -14,10 +14,9 @@ public class RainbowMain {
         ExecutorService executor = Executors.newFixedThreadPool(threads);
         System.out.println("Generation of RainbowTables has started, please wait........................");
         Instant b = Instant.now();
-        for (int i = 0; i < 1000; i++) {
-            Runnable worker = new RainbowTable();
-            executor.execute(worker);
-        }
+        Runnable worker = new RainbowTable();
+        executor.execute(worker);
+
 
         executor.shutdown();
 

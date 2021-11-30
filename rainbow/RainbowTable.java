@@ -31,23 +31,23 @@ public class RainbowTable implements Runnable {
     }
 
 
-    String[] tableGenerator() throws NoSuchAlgorithmException{ // maybe the I did badly here but this class is basically a copy paste from the git I sent you.
+    String[] tableGenerator(int j) throws NoSuchAlgorithmException{ // maybe the I did badly here but this class is basically a copy paste from the git I sent you.
          int number = rand.nextInt(9000);
          number = number+1000;
          String startingPlaintext = String.valueOf(number);
          String temp = "0";
          String startEnd[] = new String[2];
          startEnd[0] = startingPlaintext;
-         for (int i = 0; i < 100000; i++) {
+         for (int i = 0; i < 10000; i++) {
              temp = hashGenerator(startingPlaintext);
-             startingPlaintext = reduceHash(temp);
+             startingPlaintext = reduceHash(temp,j);
          }
          startEnd[1] = temp;
          return startEnd;
     }
 
 
-    String reduceHash(String s) {
+    String reduceHash(String s, int j) {
         String r = "";
         int c = 0;
         for (int i = 0; i < s.length() && c < 4; i++) {
@@ -56,6 +56,9 @@ public class RainbowTable implements Runnable {
                 c = c + 1;
             }
         }
+        int d = Integer.parseInt(r);
+        d = (d+j)%9999;
+        r = String.valueOf(d);
         return r;
     }
 
@@ -70,27 +73,27 @@ public class RainbowTable implements Runnable {
     }
 
     void writeRainbowTables() throws FileNotFoundException, NoSuchAlgorithmException {
-
-        String data[] = tableGenerator();
         Path path = Paths.get("tables.txt");
         //Could make this randomAccess to avoid sync overhead if i have enough time
 
         Charset charset = Charset.forName("UTF-8");
 
         checkIfFileExistsElseCreateIt("tables.txt");
+        for(int i = 0; i < 10000; i++) {
+            String data[] = tableGenerator(i);
 
 
 
+            try {
+                try (BufferedWriter writer = Files.newBufferedWriter(path, charset, StandardOpenOption.APPEND)) {
+                    writer.write(data[0] + "  " + data[1]);
+                    writer.newLine();
+                    writer.close();
 
-        try {
-            try (BufferedWriter writer = Files.newBufferedWriter(path, charset, StandardOpenOption.APPEND)) {
-                writer.write(data[0] + "  " + data[1]);
-                writer.newLine();
-                writer.close();
-
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
     }
 
