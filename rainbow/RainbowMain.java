@@ -16,14 +16,10 @@ public class RainbowMain {
         Instant b = Instant.now();
         Runnable worker = new RainbowTable();
         executor.execute(worker);
-
-
         executor.shutdown();
-
         while (!executor.isTerminated()) {
         };
         Instant e = Instant.now();
-        System.out.println("Finished all threads");
         Duration timeElapsed = Duration.between(b, e);
         System.out.println("Generation completed. It took "
                 + (timeElapsed.toMillis())/1000.0+" Seconds");

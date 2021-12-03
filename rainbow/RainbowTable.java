@@ -31,16 +31,21 @@ public class RainbowTable implements Runnable {
     }
 
 
-    String[] tableGenerator(int j) throws NoSuchAlgorithmException{ // maybe the I did badly here but this class is basically a copy paste from the git I sent you.
-         int number = rand.nextInt(9000);
-         number = number+1000;
-         String startingPlaintext = String.valueOf(number);
-         String temp = "0";
+    String[] tableGenerator() throws NoSuchAlgorithmException{
+         int number = rand.nextInt(308915776);
+         String startingPlaintext = "";
+         String temp = "";
+         for(int i = 0; i < 6 ; i++){
+             int n = (number % 26) + 97;
+             char c = (char) n;
+             number = number/26;
+             startingPlaintext = c + startingPlaintext;
+         }
          String startEnd[] = new String[2];
          startEnd[0] = startingPlaintext;
          for (int i = 0; i < 10000; i++) {
              temp = hashGenerator(startingPlaintext);
-             startingPlaintext = reduceHash(temp,j);
+             startingPlaintext = reduceHash(temp,i);
          }
          startEnd[1] = temp;
          return startEnd;
@@ -49,16 +54,14 @@ public class RainbowTable implements Runnable {
 
     String reduceHash(String s, int j) {
         String r = "";
-        int c = 0;
-        for (int i = 0; i < s.length() && c < 4; i++) {
-            if(Character.isDigit(s.charAt(i))) {
-                r = r + s.charAt(i);
-                c = c + 1;
-            }
+        long l = Long.parseLong(s.substring(0,10), 16);
+        int number = (int) ((l+j)%308915776);
+        for(int i = 0; i < 6 ; i++){
+            int n = (number % 26) + 97;
+            char c = (char) n;
+            number = number/26;
+            r = c + r;
         }
-        int d = Integer.parseInt(r);
-        d = (d+j)%9999;
-        r = String.valueOf(d);
         return r;
     }
 
@@ -74,24 +77,17 @@ public class RainbowTable implements Runnable {
 
     void writeRainbowTables() throws FileNotFoundException, NoSuchAlgorithmException {
         Path path = Paths.get("tables.txt");
-        //Could make this randomAccess to avoid sync overhead if i have enough time
-
         Charset charset = Charset.forName("UTF-8");
-
         checkIfFileExistsElseCreateIt("tables.txt");
         for(int i = 0; i < 10000; i++) {
-            String data[] = tableGenerator(i);
-
-
-
-            try {
-                try (BufferedWriter writer = Files.newBufferedWriter(path, charset, StandardOpenOption.APPEND)) {
+            String data[] = tableGenerator();
+             try (BufferedWriter writer = Files.newBufferedWriter(path, charset, StandardOpenOption.APPEND)) {
                     writer.write(data[0] + "  " + data[1]);
                     writer.newLine();
                     writer.close();
 
-                }
-            } catch (IOException e) {
+             }
+             catch (IOException e) {
                 e.printStackTrace();
             }
         }
