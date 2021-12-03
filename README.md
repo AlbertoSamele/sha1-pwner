@@ -6,7 +6,7 @@ The main scope is not to create a scalable, state-of-the-art server with decrypt
 
 # Architectural choices
 
-Client and server are here meant to be fully independent, code duplication in ServerManager and ClientManager classes is therefore on purpose
+Client and server are here meant to be fully independent, code duplication in ServerManager and ClientManager classes is therefore on purpose.
 
 # How to run
 
@@ -14,9 +14,10 @@ For the rainbow table:
 ```
 cd rainbow
 javac RainbowMain.java
-java RainbowMain
+java RainbowMain PLAIN_SIZE
 ```
-Then, move the *table.txt* file from the rainbow folder to the server folder
+Where *PLAIN_SIZE* is the size of the plain texts that will be held and thus decrypted tha,ks to this particular rainbow table.
+Then, move the *tableX.txt* file from the rainbow folder to the server folder.
 For the server:
 ```
 cd server
@@ -29,6 +30,6 @@ cd client
 javac ClientMain.java
 java ClientMain -dir DIR_NAME -pwd PWD_FILE
 ```
-where *DIR_NAME* is the directory containing the clear-text files to be used for performance benchmarking and *PWD_FILE* is the file path containing the passwords pool to be used for files AES encryption
+Where *DIR_NAME* is the directory containing the clear-text files to be used for performance benchmarking and *PWD_FILE* is the file path containing the passwords pool to be used for files AES encryption.
 
 

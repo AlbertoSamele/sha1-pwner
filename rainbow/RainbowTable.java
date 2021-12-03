@@ -2,6 +2,7 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.Socket;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -14,10 +15,15 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 public class RainbowTable implements Runnable {
     private Hashtable<String, String> numbers = new Hashtable<>();
     private SecureRandom rand = new SecureRandom();
+    private final int length;
+    public RainbowTable(int length) {
+        this.length = length;
+    }
 
     public void run() {
         try {
@@ -31,12 +37,13 @@ public class RainbowTable implements Runnable {
     }
 
 
-    String[] tableGenerator() throws NoSuchAlgorithmException{
-         int number = rand.nextInt(308915776);
+    String[] tableGenerator() throws NoSuchAlgorithmException {
+         long number = Math.abs(rand.nextLong());
+         number = (long) (number % Math.pow(26,length));
          String startingPlaintext = "";
          String temp = "";
-         for(int i = 0; i < 6 ; i++){
-             int n = (number % 26) + 97;
+         for(int i = 0; i < length ; i++){
+             int n = (int) (number % 26) + 97;
              char c = (char) n;
              number = number/26;
              startingPlaintext = c + startingPlaintext;
@@ -54,10 +61,10 @@ public class RainbowTable implements Runnable {
 
     String reduceHash(String s, int j) {
         String r = "";
-        long l = Long.parseLong(s.substring(0,10), 16);
-        int number = (int) ((l+j)%308915776);
-        for(int i = 0; i < 6 ; i++){
-            int n = (number % 26) + 97;
+        long l = Long.parseLong(s.substring(0,12), 16);
+        long number = (long) ((l+j)%Math.pow(26,length));
+        for(int i = 0; i < length ; i++){
+            int n = (int)(number % 26) + 97;
             char c = (char) n;
             number = number/26;
             r = c + r;
@@ -76,20 +83,16 @@ public class RainbowTable implements Runnable {
     }
 
     void writeRainbowTables() throws FileNotFoundException, NoSuchAlgorithmException {
-        Path path = Paths.get("tables.txt");
+        Path path = Paths.get("tables"+length+".txt");
         Charset charset = Charset.forName("UTF-8");
-        checkIfFileExistsElseCreateIt("tables.txt");
-        for(int i = 0; i < 10000; i++) {
-            String data[] = tableGenerator();
-             try (BufferedWriter writer = Files.newBufferedWriter(path, charset, StandardOpenOption.APPEND)) {
-                    writer.write(data[0] + "  " + data[1]);
-                    writer.newLine();
-                    writer.close();
-
-             }
-             catch (IOException e) {
-                e.printStackTrace();
-            }
+        checkIfFileExistsElseCreateIt("tables"+length+".txt");
+        String data[] = tableGenerator();
+        try (BufferedWriter writer = Files.newBufferedWriter(path, charset, StandardOpenOption.APPEND)) {
+            writer.write(data[0] + "  " + data[1]);
+            writer.newLine();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -98,7 +101,7 @@ public class RainbowTable implements Runnable {
 
         File f = new File(fileName);
         if(!f.exists()) {
-            System.out.println("File tables.txt wasnt found.\n File tables.txt was created");
+            System.out.println("File tables"+length+".txt wasnt found.\n File tables.txt was created");
             try {
                 f.createNewFile();
             } catch (IOException e) {

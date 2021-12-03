@@ -10,19 +10,26 @@ import java.util.concurrent.Executors;
 
 public class RainbowMain {
     public static void main(String[] args) {
+        int length = 0;
+        if(args.length > 0) length = Math.abs(Integer.valueOf(args[0])%10);
         int threads = Runtime.getRuntime().availableProcessors();
         ExecutorService executor = Executors.newFixedThreadPool(threads);
         System.out.println("Generation of RainbowTables has started, please wait........................");
         Instant b = Instant.now();
-        Runnable worker = new RainbowTable();
-        executor.execute(worker);
+        for (int i = 0; i < 10000; i++) {
+            Runnable worker = new RainbowTable(length);
+            executor.execute(worker);
+        }
+
         executor.shutdown();
+
         while (!executor.isTerminated()) {
         };
         Instant e = Instant.now();
+        System.out.println("Finished all threads");
         Duration timeElapsed = Duration.between(b, e);
         System.out.println("Generation completed. It took "
                 + (timeElapsed.toMillis())/1000.0+" Seconds");
-    }
 
+    }
 }

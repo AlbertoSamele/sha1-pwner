@@ -135,8 +135,7 @@ public class DecryptionHandler implements Runnable {
     private String decryptPasswordFaster(String hashedPassword, int passwordLength) throws NoSuchAlgorithmException {
         Map<String, String> map = new HashMap<>();
         try {
-            BufferedReader in = new BufferedReader(new FileReader("tables.txt"));
-
+            BufferedReader in = new BufferedReader(new FileReader("tables"+passwordLength+".txt"));
             String line;
             while ((line = in.readLine()) != null) {
                 String parts[] = line.split("  ");
@@ -144,22 +143,22 @@ public class DecryptionHandler implements Runnable {
             }
             in.close();
         } catch (Exception e) {
-            System.out.println("File tables.txt not found ");
+            System.out.println("File tables"+passwordLength+".txt not found ");
             System.exit(0);
         }
-        System.out.println(map.size());
-        String plain = null;
+        System.out.println("size of the table: " + map.size());
+        String plain;
         for(int i = 0; i < 10000; i++) {
             String hash = hashedPassword;
             for(int j = i; j > 0; j--) {
                 if (map.containsKey(hash)) {
-                    String found = findPlain(map.get(hash), hashedPassword);
+                    String found = findPlain(map.get(hash), hashedPassword, passwordLength);
                     if (found != null)
                         return found;
-                    plain = reduce(hash, 10000-j);
+                    plain = reduce(hash, 10000-j, passwordLength);
                     hash = CryptoManager.shashSHA1(plain);
                 } else {
-                    plain = reduce(hash, 10000-j);
+                    plain = reduce(hash, 10000-j, passwordLength);
                     hash = CryptoManager.shashSHA1(plain);
                 }
             }
@@ -167,12 +166,12 @@ public class DecryptionHandler implements Runnable {
         return null;
     }
 
-    String reduce(String s, int j) {
+    String reduce(String s, int j, int len) {
         String r = "";
-        long l = Long.parseLong(s.substring(0,10), 16);
-        int number = (int) ((l+j)%308915776);
-        for(int i = 0; i < 6 ; i++){
-            int n = (number % 26) + 97;
+        long l = Long.parseLong(s.substring(0,12), 16);
+        long number = (long) ((l+j)%Math.pow(26,len));
+        for(int i = 0; i < len ; i++){
+            int n = (int)(number % 26) + 97;
             char c = (char) n;
             number = number/26;
             r = c + r;
@@ -180,12 +179,12 @@ public class DecryptionHandler implements Runnable {
         return r;
     }
 
-    String findPlain(String plain, String hash) throws NoSuchAlgorithmException {
+    String findPlain(String plain, String hash, int len) throws NoSuchAlgorithmException {
         String hash2 = CryptoManager.shashSHA1(plain);
         for(int i = 0; i < 10000 ; i++) {
             if(hash.equals(hash2))
                 return plain;
-            plain = reduce(hash2,i);
+            plain = reduce(hash2,i,len);
             hash2 = CryptoManager.shashSHA1(plain);
         }
         return null;
