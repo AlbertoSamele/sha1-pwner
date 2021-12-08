@@ -14,10 +14,11 @@ For the rainbow table:
 ```
 cd rainbow
 javac RainbowMain.java
-java RainbowMain PLAIN_SIZE
+java RainbowMain -dic PWD_FILE
 ```
-Where *PLAIN_SIZE* is the size of the plain texts that will be held and thus decrypted tha,ks to this particular rainbow table.
-Then, move the *tableX.txt* file from the rainbow folder to the server folder.
+Where *PWD_FILE* is the password pool to be used to generate the rainbow table.
+The process will generate a .txt containing the dimension of the chain size as its first line, following with the actual rainbow table contents after that.
+
 For the server:
 ```
 cd server

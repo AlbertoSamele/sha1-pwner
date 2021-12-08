@@ -1,35 +1,53 @@
 import java.io.IOException;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.time.Duration;
-import java.time.Instant;
-import java.util.InputMismatchException;
-import java.util.Scanner;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.nio.file.*;
+import java.util.*;
+
 
 public class RainbowMain {
-    public static void main(String[] args) {
-        int length = 0;
-        if(args.length > 0) length = Math.abs(Integer.valueOf(args[0])%10);
-        int threads = Runtime.getRuntime().availableProcessors();
-        ExecutorService executor = Executors.newFixedThreadPool(threads);
-        System.out.println("Generation of RainbowTables has started, please wait........................");
-        Instant b = Instant.now();
-        for (int i = 0; i < 10000; i++) {
-            Runnable worker = new RainbowTable(length);
-            executor.execute(worker);
+
+    // Available arguments to be read from CLI on program start
+    private enum CLIArgument {
+        /**
+         * dic: the password dictionary filepath to be used to genereate the rainbow table
+        */
+        DICTIONARY("-dic");
+        
+
+        // The expected argument format
+        public final String argId;
+
+        /**
+         * @param argId the expected argument format
+         */
+        CLIArgument(String argId) {
+            this.argId = argId;
         }
+    }
 
-        executor.shutdown();
 
-        while (!executor.isTerminated()) {
-        };
-        Instant e = Instant.now();
-        System.out.println("Finished all threads");
-        Duration timeElapsed = Duration.between(b, e);
-        System.out.println("Generation completed. It took "
-                + (timeElapsed.toMillis())/1000.0+" Seconds");
+    // Rainbow table chain size
+    private static int chainSize = 1000;
+
+    
+    public static void main(String[] args) throws IOException {
+        // Gathering user input
+        if (args.length < CLIArgument.values().length * 2) { throw new IllegalArgumentException(); }
+        Map<CLIArgument, String> userInput = new HashMap<>();
+        for (int i = 0; i < CLIArgument.values().length; i++) {
+            CLIArgument expectedArgument = CLIArgument.values()[i];
+            String userArgument = args[2*i];
+            if (!userArgument.equals(expectedArgument.argId)) { throw new IllegalArgumentException(); }
+            userInput.put(expectedArgument, args[2*i + 1]);
+        }
+        // Gathering password pool datasource
+        Path passwordPoolFilepath = Paths.get(userInput.get(CLIArgument.DICTIONARY));
+        List<String> passwordPool = Files.readAllLines(passwordPoolFilepath);
+        // Generating table 
+        System.out.println("Generating rainbow table. Please hold on");
+        RainbowService rainbowService = new RainbowService(passwordPool, chainSize);
+        rainbowService.run();
+        // Table generated
+        System.out.println("Rainbow table generated");
 
     }
 }
