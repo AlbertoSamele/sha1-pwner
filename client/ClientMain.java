@@ -11,7 +11,7 @@ import java.util.stream.Stream;
 import javax.crypto.*;
 
 import Util.*;
-import Manager.CryptoManager;
+import ClientManager.CryptoManager;
 import Network.Decryption.*;
 
 
@@ -62,7 +62,7 @@ public class ClientMain {
         File[] clearFiles = targetFolder.listFiles();
         // Parsing available passwords
         String passwordFilepath = userInput.get(CLIArgument.PWD);
-        DrawList<String> passwordPool = new DrawList<>();
+        DrawList<String> passwordPool = new DrawList<String>();
         try (Stream<String> lines = Files.lines(Paths.get(passwordFilepath), Charset.defaultCharset())) {
             lines.forEachOrdered( line -> passwordPool.add(line) );
         }
@@ -90,7 +90,7 @@ public class ClientMain {
                 baseFilename, 
                 fileExtension, 
                 encryptedFile
-                );
+            );
             Thread networkThread = new Thread(handler);
             networkThread.start();
         }

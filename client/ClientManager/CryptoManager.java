@@ -1,33 +1,36 @@
-package Manager;
+package ClientManager;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
-import java.security.spec.KeySpec;
-
+import java.io.*;
+import java.security.*;
+import java.security.spec.*;
 import javax.crypto.*;
-import javax.crypto.spec.PBEKeySpec;
-import javax.crypto.spec.SecretKeySpec;
+import javax.crypto.spec.*;
 
 public class CryptoManager {
 
     private static final String ALGORITHM = "AES";
 
-
     /**
      * Generates a secret key that can be use for AES encryption. The key is insecure as normally a random salt should be used.
-     * @param password the password from which the key will be derived from
-     * @return the encryption key
+     * @param password password from which the key will be derived
+     * @return the key for the encryption
      */
     public static SecretKey getKeyFromPassword(String password) throws NoSuchAlgorithmException, InvalidKeySpecException {
         SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
         KeySpec spec = new PBEKeySpec(password.toCharArray(), " ".getBytes(), 65536, 128);
         return new SecretKeySpec(factory.generateSecret(spec).getEncoded(),"AES");
+    }
+
+    /**
+     * Encrypts input file into targer file
+     * @param key key to use for the encryption
+     * @param inputFile file to encrypt
+     * @param outputFile file where the encrypted result is written
+     */
+    public static void encryptFile(SecretKey key, File inputFile, File outputFile) throws
+    InvalidAlgorithmParameterException, NoSuchPaddingException, IllegalBlockSizeException, IOException, 
+    NoSuchAlgorithmException,BadPaddingException, InvalidKeyException {
+        cryptographyOnFile(Cipher.ENCRYPT_MODE, key, inputFile, outputFile);
     }
 
     /**
@@ -38,18 +41,6 @@ public class CryptoManager {
     public static byte[] hashSHA1(String data) throws NoSuchAlgorithmException{
         MessageDigest md = MessageDigest.getInstance("SHA-1");
         return md.digest(data.getBytes());
-    }
-    
-    /**
-     * Decryps given file
-     * @param key Key to use for the decryption
-     * @param inputFile File to decrypt
-     * @param outputFile File where the decrypted result is written
-     */
-    public static void decryptFile(SecretKey key, File inputFile, File outputFile) 
-    throws NoSuchPaddingException, IllegalBlockSizeException, IOException, NoSuchAlgorithmException, 
-    BadPaddingException, InvalidKeyException {
-        cryptographyOnFile(Cipher.DECRYPT_MODE, key, inputFile, outputFile);
     }
 
     /**
