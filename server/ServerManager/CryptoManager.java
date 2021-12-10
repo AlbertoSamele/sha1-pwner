@@ -68,6 +68,33 @@ public class CryptoManager {
     }
 
     /**
+     * Reduces given hash into plaintext representable of the same length as the original hash
+     * @param hash the hash to be reduced
+     * @param j constant to lessen the chances of collisions during reduction
+     * @param length the length of the reduced hash to be generated
+     * @return the reduced hash
+     */
+    public static String reduceHash(byte[] hash, int j, int length) {
+        String hashStringRepresentable = "";
+        for (int i=0; i < hash.length; i++) {
+            hashStringRepresentable += Integer.toString((hash[i] & 0xff) + 0x100, 16).substring(1);
+        }
+        String stringifiedLong = hashStringRepresentable.replaceAll("[^0-9]", "");
+        long hashLongRepresentable = Long.parseLong(stringifiedLong.substring(0, Math.min(stringifiedLong.length() - 1, 15)));
+        // Reducing hash
+        String reducedHash = "";
+        long number = (long) ((hashLongRepresentable + j) % Math.pow(93,length));
+        for(int i = 0; i < length; i++){
+            int n = (int)(number % 93) + 33;
+            char c = (char) n;
+            number = number/93;
+            reducedHash = c + reducedHash;
+        }
+
+        return reducedHash;
+    }
+
+    /**
      * Applies a cryptographic operation (encryption or decryption) to a file with a second file as target output
      * @param cipherMode the cryptographic operation to perform
      * @param key the key to use during the cryptographic operation

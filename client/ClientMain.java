@@ -90,7 +90,7 @@ public class ClientMain {
                 baseFilename, 
                 fileExtension, 
                 encryptedFile
-                );
+            );
             Thread networkThread = new Thread(handler);
             networkThread.start();
         }

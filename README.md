@@ -4,9 +4,10 @@
 In short, the objective is to create a client-server application, measuring its performance in realistic working conditions, in which the client sends the server an AES encrypted file alongside its SHA1 password (and its length) expecting the decrypted version in return.
 The main scope is not to create a scalable, state-of-the-art server with decryption microservices, but rather the performance benchmark of the server itself.
 
-# Architectural choices
+# Development choices
 
 Client and server are here meant to be fully independent, code duplication in ServerManager and ClientManager classes is therefore on purpose.
+For testing's sake, passwords are here assumed to be solely comprised out of ASCII characters.
 
 # How to run
 

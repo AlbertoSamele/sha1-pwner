@@ -1,5 +1,6 @@
 package Managers;
 
+import java.nio.ByteBuffer;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
@@ -22,9 +23,12 @@ public class CryptoManager {
      * @return
      */
     public static String reduceHash(byte[] hash, int j, int length) {
-        // Similar algorithm as to hash tables hashing functions to minimize collisions risks
-        int h;
-        long hashLongRepresentable = (h = hash.hashCode()) ^ (h >>> 6);
+        String hashStringRepresentable = "";
+        for (int i=0; i < hash.length; i++) {
+            hashStringRepresentable += Integer.toString((hash[i] & 0xff) + 0x100, 16).substring(1);
+        }
+        String stringifiedLong = hashStringRepresentable.replaceAll("[^0-9]", "");
+        long hashLongRepresentable = Long.parseLong(stringifiedLong.substring(0, Math.min(stringifiedLong.length() - 1, 15)));
         // Reducing hash
         String reducedHash = "";
         long number = (long) ((hashLongRepresentable + j) % Math.pow(93,length));

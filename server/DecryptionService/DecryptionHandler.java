@@ -5,16 +5,17 @@ import java.net.Socket;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.spec.InvalidKeySpecException;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.crypto.*;
-import Util.CharsetIterable;
 
+import Models.RainbowTable;
+import Util.CharsetIterable;
 import ServerManager.*;
+
+
 // Handles decryption requests
 public class DecryptionHandler implements Runnable {
 
@@ -22,13 +23,16 @@ public class DecryptionHandler implements Runnable {
     private final Socket socket;
     // The id associated with the running request
     private final UUID handlerId;
+    // The rainbow table to be used for the hash cracking process
+    private final RainbowTable rainbowTable;
 
 
     /**
      * @param socket Socket relative to the running inbound connection
      */
-    public DecryptionHandler(Socket socket) {
+    public DecryptionHandler(Socket socket, RainbowTable rainbowTable) {
         this.socket = socket;
+        this.rainbowTable = rainbowTable;
         handlerId = UUID.randomUUID();
     }
 
@@ -46,12 +50,11 @@ public class DecryptionHandler implements Runnable {
             // Decrypting request data
             System.out.println("Cracking password");
             //String cleartextPassword = decryptPassword(request.hashedPassword, request.passwordLength);
-            String result = "";
-            for (int i=0; i < (request.hashedPassword).length; i++) {
-                result +=
-                        Integer.toString( ( (request.hashedPassword)[i] & 0xff ) + 0x100, 16).substring( 1 );
+            String cleartextPassword = decryptPassword(request.hashedPassword, request.passwordLength, rainbowTable);
+            if (cleartextPassword == null) {
+                System.out.println("Rainbow attack failed. Attempting bruteforce");
+                cleartextPassword = bruteforce(request.hashedPassword, request.passwordLength);
             }
-            String cleartextPassword = decryptPasswordFaster(result, request.passwordLength);
             System.out.println("Password found: " + cleartextPassword);
             SecretKey decryptionPassword = CryptoManager.getKeyFromPassword(cleartextPassword);
             File responseFile = new File(String.format("decrypted_%s", handlerId.toString()));
@@ -90,14 +93,55 @@ public class DecryptionHandler implements Runnable {
     }
 
     /**
-     * Decrypts given hashed password into cleartext
+     * Attempts to decrypt the given password hash first using a pre-computed rainbow table, defaulting to bruteforce if that method fails
+     * @param hashedPassword the password to be decrypted
+     * @param passwordLength the clear-text password length
+     * @param rainbowTable the reainbow table to be used during the attack
+     * @return the clear-text password
+     * @throws NoSuchAlgorithmException
+     */
+    private String decryptPassword(byte[] hashedPassword, int passwordLength, RainbowTable rainbowTable) throws NoSuchAlgorithmException {
+        String cleartextResult = null;
+        // Leveraging the fact that each chain in the rainbow table only has entries 
+        // the same length as the entrypoint to further reduce the set in which the hashed password
+        // should be looked into
+        Map<String, String> filteredTable = rainbowTable.entries.entrySet().stream()
+        .filter( mapEntry -> mapEntry.getValue().length() == passwordLength)
+        .collect(Collectors.toMap(p -> p.getKey(), p -> p.getValue()));
+        // Finding reduced hash matches
+        byte[] targetHash = hashedPassword;
+        for(int i = 0; i < rainbowTable.chainLength && cleartextResult == null; i++) {
+            String reducedHash = CryptoManager.reduceHash(targetHash, i, passwordLength);
+            //System.out.println(reducedHash);
+            if (filteredTable.containsKey(reducedHash)) {
+                // Match found, inspecting chain
+                String entryPoint = filteredTable.get(reducedHash);
+                for (int k = 0; k < rainbowTable.chainLength; k++) {
+                    byte[] chainHash = CryptoManager.hashSHA1(entryPoint);
+                    if (Arrays.equals(chainHash, hashedPassword)) {
+                        cleartextResult = entryPoint;
+                        break;
+                    } else { entryPoint = CryptoManager.reduceHash(chainHash, k, passwordLength); }
+                }
+            } else { 
+                // No match found, continuing search
+                targetHash = CryptoManager.hashSHA1(reducedHash);
+            }
+
+        }
+
+        return cleartextResult;
+    }
+
+    /**
+     * Decrypts given hashed password into cleartext using a slow bruteforce algorithm
      *
      * @param hashedPassword the password to be decrypted
      * @param passwordLength the clear-text password length
      * @return the clear-text password
      * @throws NoSuchAlgorithmException when the bruteforce process fails
      */
-    private String decryptPassword(byte[] hashedPassword, int passwordLength) throws NoSuchAlgorithmException {
+    private String bruteforce(byte[] hashedPassword, int passwordLength) throws NoSuchAlgorithmException {
         // Declaring available password charset
         CharsetIterable ascii = CharsetIterable.ASCII;
         char minAsciiValue = ascii.min();
@@ -126,67 +170,8 @@ public class DecryptionHandler implements Runnable {
                 }
             }
         }
-        /*if (Arrays.equals(CryptoManager.hashSHA1("test"), hashedPassword)) {
-            System.out.println("OK");
-        } else { System.out.println("KO"); }*/
+
         return String.valueOf(passwordGuess);
     }
 
-    private String decryptPasswordFaster(String hashedPassword, int passwordLength) throws NoSuchAlgorithmException {
-        Map<String, String> map = new HashMap<>();
-        try {
-            BufferedReader in = new BufferedReader(new FileReader("tables"+passwordLength+".txt"));
-            String line;
-            while ((line = in.readLine()) != null) {
-                String parts[] = line.split("  ");
-                map.put(parts[1], parts[0]);
-            }
-            in.close();
-        } catch (Exception e) {
-            System.out.println("File tables"+passwordLength+".txt not found ");
-            System.exit(0);
-        }
-        System.out.println("size of the table: " + map.size());
-        String plain;
-        for(int i = 0; i < 10000; i++) {
-            String hash = hashedPassword;
-            for(int j = i; j > 0; j--) {
-                if (map.containsKey(hash)) {
-                    String found = findPlain(map.get(hash), hashedPassword, passwordLength);
-                    if (found != null)
-                        return found;
-                    plain = reduce(hash, 10000-j, passwordLength);
-                    hash = CryptoManager.shashSHA1(plain);
-                } else {
-                    plain = reduce(hash, 10000-j, passwordLength);
-                    hash = CryptoManager.shashSHA1(plain);
-                }
-            }
-        }
-        return null;
-    }
-
-    String reduce(String s, int j, int len) {
-        String r = "";
-        long l = Long.parseLong(s.substring(0,12), 16);
-        long number = (long) ((l+j)%Math.pow(26,len));
-        for(int i = 0; i < len ; i++){
-            int n = (int)(number % 26) + 97;
-            char c = (char) n;
-            number = number/26;
-            r = c + r;
-        }
-        return r;
-    }
-
-    String findPlain(String plain, String hash, int len) throws NoSuchAlgorithmException {
-        String hash2 = CryptoManager.shashSHA1(plain);
-        for(int i = 0; i < 10000 ; i++) {
-            if(hash.equals(hash2))
-                return plain;
-            plain = reduce(hash2,i,len);
-            hash2 = CryptoManager.shashSHA1(plain);
-        }
-        return null;
-    }
 }
