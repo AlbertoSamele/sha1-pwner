@@ -49,8 +49,7 @@ public class DecryptionHandler implements Runnable {
             FileManager.readFile(inputStream, new FileOutputStream(requestFile), request.fileLength);
             // Decrypting request data
             System.out.println("Cracking password");
-            //String cleartextPassword = decryptPassword(request.hashedPassword, request.passwordLength);
-            String cleartextPassword = decryptPassword(request.hashedPassword, request.passwordLength, rainbowTable);
+            String cleartextPassword = rainbow(request.hashedPassword, request.passwordLength, rainbowTable);
             if (cleartextPassword == null) {
                 System.out.println("Rainbow attack failed. Attempting bruteforce");
                 cleartextPassword = bruteforce(request.hashedPassword, request.passwordLength);
@@ -93,14 +92,14 @@ public class DecryptionHandler implements Runnable {
     }
 
     /**
-     * Attempts to decrypt the given password hash first using a pre-computed rainbow table, defaulting to bruteforce if that method fails
+     * Attempts to decrypt the given password hash using a rainbow table attack
      * @param hashedPassword the password to be decrypted
      * @param passwordLength the clear-text password length
      * @param rainbowTable the reainbow table to be used during the attack
-     * @return the clear-text password
+     * @return the clear-text password, null if the attack fails
      * @throws NoSuchAlgorithmException
      */
-    private String decryptPassword(byte[] hashedPassword, int passwordLength, RainbowTable rainbowTable) throws NoSuchAlgorithmException {
+    private String rainbow(byte[] hashedPassword, int passwordLength, RainbowTable rainbowTable) throws NoSuchAlgorithmException {
         String cleartextResult = null;
         // Leveraging the fact that each chain in the rainbow table only has entries 
         // the same length as the entrypoint to further reduce the set in which the hashed password
@@ -112,7 +111,6 @@ public class DecryptionHandler implements Runnable {
         byte[] targetHash = hashedPassword;
         for(int i = 0; i < rainbowTable.chainLength && cleartextResult == null; i++) {
             String reducedHash = CryptoManager.reduceHash(targetHash, i, passwordLength);
-            //System.out.println(reducedHash);
             if (filteredTable.containsKey(reducedHash)) {
                 // Match found, inspecting chain
                 String entryPoint = filteredTable.get(reducedHash);

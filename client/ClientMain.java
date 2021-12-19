@@ -72,6 +72,7 @@ public class ClientMain {
         File decryptedFolder = new File("Decrypted/");
         decryptedFolder.mkdir();
         // Processing input
+        Exponential exp = new Exponential(2.5);
         for (File file : clearFiles) {
             // Generatiing passwords
             String clearPassword = passwordPool.draw();
@@ -91,8 +92,15 @@ public class ClientMain {
                 fileExtension, 
                 encryptedFile
             );
-            Thread networkThread = new Thread(handler);
-            networkThread.start();
+            int delayMilliseconds = (int) (10 * 1000 *exp.next());
+            new java.util.Timer().schedule( 
+                new java.util.TimerTask() {
+                    @Override public void run() {
+                        handler.run();
+                    }
+                },
+                delayMilliseconds
+            );
         }
         
     }

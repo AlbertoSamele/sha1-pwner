@@ -1,6 +1,8 @@
 package Network.Decryption;
 import java.io.*;
 import java.net.Socket;
+import java.time.Duration;
+import java.time.Instant;
 
 import ClientManager.FileManager;
 
@@ -38,6 +40,8 @@ public class DecryptionHandler implements Runnable {
             // IO streams
             DataInputStream inputStream = new DataInputStream(socket.getInputStream());
             DataOutputStream outputStream = new DataOutputStream(socket.getOutputStream());
+            // Recording request sent time
+            Instant requestSentTimestamp = Instant.now();
             // Sending network request
             sendRequest(outputStream, request.hashedPassword, request.passwordLength, request.fileLength);
             outputStream.flush();
@@ -46,6 +50,10 @@ public class DecryptionHandler implements Runnable {
             long decryptedFileLength = inputStream.readLong();
             File decryptedFile = new File(String.format("Decrypted/%s.%s", fileName, fileExtension));
             FileManager.readFile(inputStream, new FileOutputStream(decryptedFile), decryptedFileLength);
+            // Loggin response time
+            Instant responseRecievedTimestamp = Instant.now();
+            Duration responseTime = Duration.between(requestSentTimestamp, responseRecievedTimestamp);
+            System.out.println(fileName + ": " + responseTime.toMillis() + " ms");
             // Cleaning up
             inputStream.close();
             outputStream.close();

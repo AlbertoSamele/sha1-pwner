@@ -7,6 +7,8 @@ import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -19,7 +21,7 @@ public class ServerMain {
     // Available arguments to be read from CLI on program start
     private enum CLIArgument {
         /**
-         * dic: the filepath of the rainbow table to be used for the hash cracking
+         * rbw: the filepath of the rainbow table to be used for the hash cracking
         */
         RAINBOW_TABLE("-rbw");
         
@@ -38,6 +40,8 @@ public class ServerMain {
 
     // Server's port
     private static int serverPort = 9000;
+    // Available service stations
+    private static int serviceStations = 5;
 
 
     public static void main(String[] args) throws IOException {
@@ -68,6 +72,7 @@ public class ServerMain {
         RainbowTable rainbowTable = new RainbowTable(rainbowChainSize, rainbowEntries);
         // Creating a server socket at target local port
         ServerSocket serverSocket = new ServerSocket(serverPort);
+        ExecutorService executor = Executors.newFixedThreadPool(serviceStations);
         System.out.println("Server started at " + serverPort);
         // Server always running unless manually terminated
         while (true) {
@@ -75,8 +80,7 @@ public class ServerMain {
             System.out.println("Inbound connection accepted");
             // Starting a new thread not to block the server's connection queue
             DecryptionHandler decryptionHandler = new DecryptionHandler(socket, rainbowTable);
-            Thread decryptionThread = new Thread(decryptionHandler);
-            decryptionThread.start();
+            executor.execute(decryptionHandler);
         }
     }
 
