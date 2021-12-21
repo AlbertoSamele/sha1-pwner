@@ -4,16 +4,16 @@ import java.util.Random;
 
 public class Exponential {
 
-    private double lambda;
+    private double avg;
     private Random rand;
 
     /** Creates a variable with a given mean. */
-    public Exponential(double lambda) {
-        this.lambda = lambda;
+    public Exponential(double avg) {
+        this.avg = avg;
         rand = new Random();
     }
 
     public double next() {
-        return -Math.log(1.0 - rand.nextDouble()) / lambda;
+        return -Math.log(1.0 - rand.nextDouble()) / avg;
     }
 }
